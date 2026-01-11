@@ -62,12 +62,11 @@ export function ResizeHandles({
             if (isDragging) {
               e.stopPropagation();
               const newSize = [...size] as [number, number, number];
+              const axisName = ['x', 'y', 'z'][handle.axis] as 'x' | 'y' | 'z';
               const delta =
                 handle.dir === 1
-                  ? (e.point[handle.axis as keyof THREE.Vector3] as number) -
-                    handle.pos[handle.axis]
-                  : handle.pos[handle.axis] -
-                    (e.point[handle.axis as keyof THREE.Vector3] as number);
+                  ? e.point[axisName] - handle.pos[handle.axis]
+                  : handle.pos[handle.axis] - e.point[axisName];
 
               newSize[handle.axis] = Math.max(
                 0.5,
