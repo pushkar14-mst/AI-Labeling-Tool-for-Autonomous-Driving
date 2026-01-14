@@ -1,19 +1,38 @@
+"use client";
+import { useThree } from "@react-three/fiber";
 import { Sphere } from "@react-three/drei";
-import { useState } from "react";
-import * as THREE from "three";
+import { useState, useRef, useEffect } from "react";
 
-interface ResizeHandlesProps {
-  position: [number, number, number];
-  size: [number, number, number];
-  onResize: (newSize: [number, number, number]) => void;
-}
-
-export function ResizeHandles({
+export default function ResizeHandles({
   position,
   size,
   onResize,
-}: ResizeHandlesProps) {
-  const [isDragging, setIsDragging] = useState(false);
+  onDragStart,
+  onDragEnd,
+}: {
+  position: [number, number, number];
+  size: [number, number, number];
+  onResize: (newSize: [number, number, number]) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+}) {
+  const [activeDrag, setActiveDrag] = useState<number | null>(null);
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const handlePointerUp = (e: PointerEvent) => {
+      e.stopPropagation();
+      setActiveDrag(null);
+      onDragEnd();
+    };
+
+    if (activeDrag !== null) {
+      gl.domElement.addEventListener("pointerup", handlePointerUp, true);
+      return () => {
+        gl.domElement.removeEventListener("pointerup", handlePointerUp, true);
+      };
+    }
+  }, [activeDrag, gl, onDragEnd]);
 
   const handles = [
     // X-axis handles
@@ -55,18 +74,20 @@ export function ResizeHandles({
           args={[0.2, 16, 16]}
           onPointerDown={(e) => {
             e.stopPropagation();
-            setIsDragging(true);
+            (e as any).target.setPointerCapture((e as any).pointerId);
+            setActiveDrag(i);
+            onDragStart();
           }}
-          onPointerUp={() => setIsDragging(false)}
           onPointerMove={(e) => {
-            if (isDragging) {
+            if (activeDrag === i) {
               e.stopPropagation();
               const newSize = [...size] as [number, number, number];
-              const axisName = ['x', 'y', 'z'][handle.axis] as 'x' | 'y' | 'z';
+              const pointValue = e.point.toArray()[handle.axis];
+              const handleValue = handle.pos[handle.axis];
               const delta =
                 handle.dir === 1
-                  ? e.point[axisName] - handle.pos[handle.axis]
-                  : handle.pos[handle.axis] - e.point[axisName];
+                  ? pointValue - handleValue
+                  : handleValue - pointValue;
 
               newSize[handle.axis] = Math.max(
                 0.5,
