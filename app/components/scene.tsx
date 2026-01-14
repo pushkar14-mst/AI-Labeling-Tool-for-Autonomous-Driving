@@ -27,12 +27,31 @@ function ResizeHandles({
   position,
   size,
   onResize,
+  onDragStart,
+  onDragEnd,
 }: {
   position: [number, number, number];
   size: [number, number, number];
   onResize: (newSize: [number, number, number]) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }) {
   const [activeDrag, setActiveDrag] = useState<number | null>(null);
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const handlePointerUp = () => {
+      setActiveDrag(null);
+      onDragEnd();
+    };
+
+    if (activeDrag !== null) {
+      gl.domElement.addEventListener("pointerup", handlePointerUp);
+      return () => {
+        gl.domElement.removeEventListener("pointerup", handlePointerUp);
+      };
+    }
+  }, [activeDrag, gl, onDragEnd]);
 
   const handles = [
     // X-axis handles
@@ -74,11 +93,9 @@ function ResizeHandles({
           args={[0.2, 16, 16]}
           onPointerDown={(e) => {
             e.stopPropagation();
+            (e as any).target.setPointerCapture((e as any).pointerId);
             setActiveDrag(i);
-          }}
-          onPointerUp={(e) => {
-            e.stopPropagation();
-            setActiveDrag(null);
+            onDragStart();
           }}
           onPointerMove={(e) => {
             if (activeDrag === i) {
@@ -112,15 +129,34 @@ function DraggableBox({
   onSelect,
   onDrag,
   onResize,
+  onDragStart,
+  onDragEnd,
 }: {
   box: BoundingBox;
   isSelected: boolean;
   onSelect: () => void;
   onDrag: (position: [number, number, number]) => void;
   onResize: (size: [number, number, number]) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
 }) {
   const meshRef = useRef<THREE.Mesh>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { gl } = useThree();
+
+  useEffect(() => {
+    const handlePointerUp = () => {
+      setIsDragging(false);
+      onDragEnd();
+    };
+
+    if (isDragging) {
+      gl.domElement.addEventListener("pointerup", handlePointerUp);
+      return () => {
+        gl.domElement.removeEventListener("pointerup", handlePointerUp);
+      };
+    }
+  }, [isDragging, gl, onDragEnd]);
 
   return (
     <group>
@@ -134,9 +170,10 @@ function DraggableBox({
         }}
         onPointerDown={(e) => {
           e.stopPropagation();
+          (e as any).target.setPointerCapture((e as any).pointerId);
           setIsDragging(true);
+          onDragStart();
         }}
-        onPointerUp={() => setIsDragging(false)}
         onPointerMove={(e) => {
           if (isDragging) {
             e.stopPropagation();
@@ -146,23 +183,25 @@ function DraggableBox({
       >
         <meshStandardMaterial
           color={box.color}
-          wireframe
-          opacity={isSelected ? 0.8 : 0.5}
-          transparent
+          metalness={0.2}
+          roughness={0.8}
         />
-        {isSelected && (
-          <lineSegments>
-            <edgesGeometry args={[new THREE.BoxGeometry(...box.size)]} />
-            <lineBasicMaterial color="#ffffff" linewidth={2} />
-          </lineSegments>
-        )}
       </Box>
+      <lineSegments position={box.position}>
+        <edgesGeometry args={[new THREE.BoxGeometry(...box.size)]} />
+        <lineBasicMaterial
+          color={isSelected ? "#ffffff" : "#000000"}
+          linewidth={isSelected ? 3 : 2}
+        />
+      </lineSegments>
 
       {isSelected && (
         <ResizeHandles
           position={box.position}
           size={box.size}
           onResize={onResize}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
         />
       )}
     </group>
@@ -191,6 +230,8 @@ export default function Scene({
   onResizeBox: (id: string, size: [number, number, number]) => void;
 }) {
   const { camera } = useThree();
+  const [isManipulating, setIsManipulating] = useState(false);
+  const controlsRef = useRef<any>(null);
 
   useEffect(() => {
     switch (cameraView) {
@@ -223,6 +264,14 @@ export default function Scene({
     }
   };
 
+  const handleDragStart = () => {
+    setIsManipulating(true);
+  };
+
+  const handleDragEnd = () => {
+    setIsManipulating(false);
+  };
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -239,10 +288,12 @@ export default function Scene({
           onSelect={() => onSelectBox(box.id)}
           onDrag={(position) => onDragBox(box.id, position)}
           onResize={(size) => onResizeBox(box.id, size)}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
         />
       ))}
 
-      <OrbitControls makeDefault />
+      <OrbitControls ref={controlsRef} makeDefault enabled={!isManipulating} />
       <gridHelper
         args={[30, 30, "#333", "#111"]}
         position={[0, 0, 0]}
