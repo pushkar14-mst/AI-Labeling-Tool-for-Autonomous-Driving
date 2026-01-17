@@ -70,7 +70,7 @@ export default function Scene({
     if (isManipulating) {
       return;
     }
-    
+
     if (
       e.object.type === "GridHelper" ||
       e.object.geometry.type === "PlaneGeometry"
@@ -84,13 +84,13 @@ export default function Scene({
     }
   };
 
-  const handleDragStart = () => {
+  function handleDragStart() {
     setIsManipulating(true);
-  };
+  }
 
-  const handleDragEnd = () => {
+  function handleDragEnd() {
     setIsManipulating(false);
-  };
+  }
 
   return (
     <>
