@@ -44,7 +44,7 @@ export default function LabelingTool() {
     let lastTime = performance.now();
     let frames = 0;
 
-    const measureFps = () => {
+    function measureFps() {
       frames++;
       const currentTime = performance.now();
       if (currentTime >= lastTime + 1000) {
@@ -53,26 +53,26 @@ export default function LabelingTool() {
         lastTime = currentTime;
       }
       requestAnimationFrame(measureFps);
-    };
+    }
 
     const rafId = requestAnimationFrame(measureFps);
     return () => cancelAnimationFrame(rafId);
   }, []);
-  const updateBoxSize = (id: string, size: [number, number, number]) => {
+  function updateBoxSize(id: string, size: [number, number, number]) {
     const newBoxes = boxes.map((box) =>
       box.id === id ? { ...box, size } : box
     );
     setBoxes(newBoxes);
     addToHistory(newBoxes);
-  };
-  const addToHistory = (newBoxes: BoundingBox[]) => {
+  }
+  function addToHistory(newBoxes: BoundingBox[]) {
     const newHistory = history.slice(0, historyIndex + 1);
     newHistory.push(newBoxes);
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
-  };
+  }
 
-  const addBox = (position: [number, number, number]) => {
+  function addBox(position: [number, number, number]) {
     const newBox: BoundingBox = {
       id: Math.random().toString(),
       position,
@@ -83,40 +83,37 @@ export default function LabelingTool() {
     const newBoxes = [...boxes, newBox];
     setBoxes(newBoxes);
     addToHistory(newBoxes);
-  };
+  }
 
-  const deleteBox = (id: string) => {
+  function deleteBox(id: string) {
     const newBoxes = boxes.filter((box) => box.id !== id);
     setBoxes(newBoxes);
     addToHistory(newBoxes);
     if (selectedBoxId === id) setSelectedBoxId(null);
-  };
+  }
 
-  const updateBoxPosition = (
-    id: string,
-    position: [number, number, number]
-  ) => {
+  function updateBoxPosition(id: string, position: [number, number, number]) {
     const newBoxes = boxes.map((box) =>
       box.id === id ? { ...box, position } : box
     );
     setBoxes(newBoxes);
-  };
+  }
 
-  const undo = () => {
+  function undo() {
     if (historyIndex > 0) {
       setHistoryIndex(historyIndex - 1);
       setBoxes(history[historyIndex - 1]);
     }
-  };
+  }
 
-  const redo = () => {
+  function redo() {
     if (historyIndex < history.length - 1) {
       setHistoryIndex(historyIndex + 1);
       setBoxes(history[historyIndex + 1]);
     }
-  };
+  }
 
-  const exportLabels = () => {
+  function exportLabels() {
     const exportData = boxes.map((box) => ({
       class: box.label,
       position: box.position,
@@ -131,11 +128,11 @@ export default function LabelingTool() {
     a.href = url;
     a.download = `labels_${Date.now()}.json`;
     a.click();
-  };
+  }
 
   // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
+    function handleKeyPress(e: KeyboardEvent) {
       // Prevent if typing in input
       if (e.target instanceof HTMLInputElement) return;
 
@@ -157,7 +154,7 @@ export default function LabelingTool() {
         e.preventDefault();
         redo();
       }
-    };
+    }
 
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
