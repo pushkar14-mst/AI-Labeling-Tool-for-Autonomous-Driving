@@ -1,8 +1,6 @@
 "use client";
-import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Box, useTexture } from "@react-three/drei";
-import { useState, useRef, useEffect } from "react";
-import * as THREE from "three";
+import { Canvas } from "@react-three/fiber";
+import { useState, useEffect } from "react";
 import Scene from "./components/scene";
 import { ViewSwitcher } from "./components/view-switcher";
 
